@@ -1,6 +1,7 @@
 package com.sensedia.api.interfaces;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class Dictionary {
@@ -17,7 +18,7 @@ public class Dictionary {
 	}
 	
 	public String valueOf(String key){
-		return MESSAGES.getString(key);
+		return Optional.ofNullable(MESSAGES.getString(key)).orElse(key);
 	}
 	
 	public Iterable<String> keys(){
