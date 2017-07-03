@@ -33,8 +33,8 @@ public class RestClient {
 			return value;
 		}
 
-		public static Offset of(Integer value) {
-			return new Offset(value);
+		public static Limit of(Integer value) {
+			return new Limit(value);
 		}
 	}
 
