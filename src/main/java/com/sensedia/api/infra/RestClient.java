@@ -18,8 +18,8 @@ public class RestClient {
 		return new RestClient(url);
 	}
 
-	public PagedOperation get(Limit limit, Offset offset) {
-		return new PagedOperation(limit, offset);
+	public <T> PagedOperation<T> get(Limit limit, Offset offset) {
+		return new PagedOperation<T>(this.url, limit, offset);
 	}
 
 	public static class Limit {
@@ -54,30 +54,33 @@ public class RestClient {
 		}
 	}
 
-	public class PagedOperation {
+	public static class PagedOperation<T> {
+		private final String url;
+		
 		private final Limit limit;
 
 		private final Offset offset;
 
 		private final RestTemplate client;
 
-		public PagedOperation(Limit limit, Offset offset) {
+		public PagedOperation(String url, Limit limit, Offset offset) {
+			this.url = url;
 			this.limit = limit;
 			this.offset = offset;
 			this.client = new RestTemplate();
 		}
 
-		public PagedOperation onRequest(RequestHandler handler) {
+		public PagedOperation<T> onRequest(RequestHandler handler) {
 			handler.onRequest(this.client);
 			return this;
 		}
 
-		public <T> PagedOperation onResponse(ResponseHandler<T> handler, Class<T> type) {
+		public PagedOperation<T> onResponse(ResponseHandler<T> handler, Class<T> type) {
 			Map<String, Object> parameters = new HashMap<>();
 			parameters.put("_limit", this.limit.get());
 			parameters.put("_offset", this.offset.get());
 
-			ResponseEntity<T> response = this.client.getForEntity(RestClient.this.url, type, parameters);
+			ResponseEntity<T> response = this.client.getForEntity(this.url, type, parameters);
 			handler.onResponse(response);
 
 			return this;
