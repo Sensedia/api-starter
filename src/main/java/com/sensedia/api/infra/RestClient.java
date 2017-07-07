@@ -9,13 +9,17 @@ import org.springframework.web.client.RestTemplate;
 public class RestClient {
 
 	private final String url;
-
+	
 	private RestClient(String url) {
 		this.url = url;
 	}
 
 	public static RestClient url(String url) {
 		return new RestClient(url);
+	}
+	
+	public <T> GetOperation<T> get(Map<String, String> parameters){
+		return new GetOperation<>(this.url, parameters);
 	}
 
 	public <T> PagedOperation<T> get(Limit limit, Offset offset) {
@@ -53,47 +57,49 @@ public class RestClient {
 			return new Offset(value);
 		}
 	}
+	
+	public static class GetOperation<T> extends AbstractOperation<T, GetOperation<T>>{
+		private final Map<String, String> parameters;
 
-	public static class PagedOperation<T> {
-		private final String url;
+		public GetOperation(String url, Map<String, String> parameters) {
+			super(url);
+			this.parameters = parameters;
+		}
 		
+		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
+			ResponseEntity<T> response = this.client().getForEntity(this.url(), type, this.parameters);
+			handler.onResponse(response);
+		}
+	}
+
+	public static class PagedOperation<T> extends AbstractOperation<T, PagedOperation<T>> {
 		private final Limit limit;
 
 		private final Offset offset;
 
-		private final RestTemplate client;
-
 		public PagedOperation(String url, Limit limit, Offset offset) {
-			this.url = url;
+			super(url);
 			this.limit = limit;
 			this.offset = offset;
-			this.client = new RestTemplate();
 		}
 
-		public PagedOperation<T> onRequest(RequestHandler handler) {
-			handler.onRequest(this.client);
-			return this;
-		}
-
-		public PagedOperation<T> onResponse(ResponseHandler<T> handler, Class<T> type) {
+		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
 			Map<String, Object> parameters = new HashMap<>();
 			parameters.put("_limit", this.limit.get());
 			parameters.put("_offset", this.offset.get());
 
-			ResponseEntity<T> response = this.client.getForEntity(this.url, type, parameters);
+			ResponseEntity<T> response = this.client().getForEntity(this.url(), type, parameters);
 			handler.onResponse(response);
-
-			return this;
 		}
 	}
-
+	
 	@FunctionalInterface
-	public interface RequestHandler {
+	public static interface RequestHandler {
 		void onRequest(RestTemplate client);
 	}
 
 	@FunctionalInterface
-	public interface ResponseHandler<T> {
+	public static interface ResponseHandler<T> {
 		void onResponse(ResponseEntity<T> response);
 	}
 }
