@@ -1,10 +1,10 @@
 package com.sensedia.api.infra;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class RestClient {
 
@@ -18,7 +18,7 @@ public class RestClient {
 		return new RestClient(url);
 	}
 	
-	public <T> GetOperation<T> get(Map<String, String> parameters){
+	public <T> GetOperation<T> get(Map<String, ?> parameters){
 		return new GetOperation<>(this.url, parameters);
 	}
 
@@ -59,15 +59,24 @@ public class RestClient {
 	}
 	
 	public static class GetOperation<T> extends AbstractOperation<T, GetOperation<T>>{
-		private final Map<String, String> parameters;
+		private final Map<String, ?> parameters;
 
-		public GetOperation(String url, Map<String, String> parameters) {
+		public GetOperation(String url, Map<String, ?> parameters) {
 			super(url);
 			this.parameters = parameters;
 		}
 		
+		Map<String, ?> getParameters() {
+			return parameters;
+		}
+		
 		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
-			ResponseEntity<T> response = this.client().getForEntity(this.url(), type, this.parameters);
+			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(this.url());
+			for(String key : this.parameters.keySet()){
+				builder.queryParam(key, this.parameters.get(key));
+			}
+			
+			ResponseEntity<T> response = this.client().getForEntity(builder.build().encode().toUri(), type);
 			handler.onResponse(response);
 		}
 	}
@@ -76,7 +85,7 @@ public class RestClient {
 		private final Limit limit;
 
 		private final Offset offset;
-
+		
 		public PagedOperation(String url, Limit limit, Offset offset) {
 			super(url);
 			this.limit = limit;
@@ -84,11 +93,11 @@ public class RestClient {
 		}
 
 		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
-			Map<String, Object> parameters = new HashMap<>();
-			parameters.put("_limit", this.limit.get());
-			parameters.put("_offset", this.offset.get());
-
-			ResponseEntity<T> response = this.client().getForEntity(this.url(), type, parameters);
+			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(this.url())
+					.queryParam("_limit", this.limit.get())
+					.queryParam("_offset", this.offset.get());
+			
+			ResponseEntity<T> response = this.client().getForEntity(builder.build().encode().toUri(), type);
 			handler.onResponse(response);
 		}
 	}
