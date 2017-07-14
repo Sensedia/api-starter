@@ -21,6 +21,10 @@ public class RestClient {
 	public <T> GetOperation<T> get(Map<String, ?> parameters){
 		return new GetOperation<>(this.url, parameters);
 	}
+	
+	public <T> GetOperation<T> get(){
+		return new GetOperation<>(this.url, null);
+	}
 
 	public <T> PagedOperation<T> get(Limit limit, Offset offset) {
 		return new PagedOperation<T>(this.url, limit, offset);
@@ -72,8 +76,11 @@ public class RestClient {
 		
 		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
 			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(this.url());
-			for(String key : this.parameters.keySet()){
-				builder.queryParam(key, this.parameters.get(key));
+			
+			if(this.parameters != null){
+				for(String key : this.parameters.keySet()){
+					builder.queryParam(key, this.parameters.get(key));
+				}
 			}
 			
 			ResponseEntity<T> response = this.client().getForEntity(builder.build().encode().toUri(), type);
