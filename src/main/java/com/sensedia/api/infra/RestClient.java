@@ -2,6 +2,9 @@ package com.sensedia.api.infra;
 
 import java.util.Map;
 
+import org.apache.http.entity.ContentType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -10,24 +13,67 @@ public class RestClient {
 
 	private final String url;
 	
-	private RestClient(String url) {
+	private final HttpHeaders header;
+	
+	private RestClient(String url, HttpHeaders header) {
 		this.url = url;
+		this.header = header;
 	}
 
-	public static RestClient url(String url) {
-		return new RestClient(url);
+	public static RestClient create(String url) {
+		return create(url, new HttpHeaders());
+	}
+	
+	public static RestClient create(String url, HttpHeaders header) {
+		return new RestClient(url, header);
+	}
+	
+	public static ResponseHandler<Void> voidHandler(){
+		return new ResponseHandler<Void>(){
+			@Override
+			public void onResponse(ResponseEntity<Void> response) {
+				//Do nothing
+			}
+		};
+	}
+	
+	public <T> PostOperation<T> post(Object body, ContentType type){
+		this.header.add(HttpHeaders.CONTENT_TYPE, type.getMimeType());
+		return new PostOperation<>(this.url, this.header, body);
 	}
 	
 	public <T> GetOperation<T> get(Map<String, ?> parameters){
-		return new GetOperation<>(this.url, parameters);
+		return new GetOperation<>(this.url, this.header, parameters);
 	}
 	
 	public <T> GetOperation<T> get(){
-		return new GetOperation<>(this.url, null);
+		return new GetOperation<>(this.url, this.header, null);
 	}
 
 	public <T> PagedOperation<T> get(Limit limit, Offset offset) {
-		return new PagedOperation<T>(this.url, limit, offset);
+		return new PagedOperation<T>(this.url, this.header, limit, offset);
+	}
+	
+	public static class PostOperation<T> extends AbstractOperation<PostOperation<T>>{
+		private final Object body;
+		
+		public PostOperation(String url, HttpHeaders header, Object body) {
+			super(url, header);
+			this.body = body;
+		}
+		
+		public void onResponse(ResponseHandler<T> handler, Class<T> responseType){
+			this.call(this.body, responseType, handler);
+		}
+		
+		public void onResponse(ResponseHandler<Void> handler){
+			this.call(this.body, Void.class, handler);
+		}
+		
+		@Override
+		protected HttpMethod method() {
+			return HttpMethod.POST;
+		}
 	}
 
 	public static class Limit {
@@ -62,11 +108,11 @@ public class RestClient {
 		}
 	}
 	
-	public static class GetOperation<T> extends AbstractOperation<T, GetOperation<T>>{
+	public static class GetOperation<T> extends AbstractOperation<GetOperation<T>>{
 		private final Map<String, ?> parameters;
 
-		public GetOperation(String url, Map<String, ?> parameters) {
-			super(url);
+		public GetOperation(String url, HttpHeaders header, Map<String, ?> parameters) {
+			super(url, header);
 			this.parameters = parameters;
 		}
 		
@@ -83,18 +129,22 @@ public class RestClient {
 				}
 			}
 			
-			ResponseEntity<T> response = this.client().getForEntity(builder.build().encode().toUri(), type);
-			handler.onResponse(response);
+			this.call(null, type, handler);
+		}
+		
+		@Override
+		protected HttpMethod method() {
+			return HttpMethod.GET;
 		}
 	}
 
-	public static class PagedOperation<T> extends AbstractOperation<T, PagedOperation<T>> {
+	public static class PagedOperation<T> extends AbstractOperation<PagedOperation<T>> {
 		private final Limit limit;
 
 		private final Offset offset;
 		
-		public PagedOperation(String url, Limit limit, Offset offset) {
-			super(url);
+		public PagedOperation(String url, HttpHeaders header, Limit limit, Offset offset) {
+			super(url, header);
 			this.limit = limit;
 			this.offset = offset;
 		}
@@ -104,8 +154,12 @@ public class RestClient {
 					.queryParam("_limit", this.limit.get())
 					.queryParam("_offset", this.offset.get());
 			
-			ResponseEntity<T> response = this.client().getForEntity(builder.build().encode().toUri(), type);
-			handler.onResponse(response);
+			this.call(builder.build().encode().toUri(), null, type, handler);
+		}
+		
+		@Override
+		protected HttpMethod method() {
+			return HttpMethod.GET;
 		}
 	}
 	
