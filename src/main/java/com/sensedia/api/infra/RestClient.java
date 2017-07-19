@@ -28,8 +28,8 @@ public class RestClient {
 		return new RestClient(url, header);
 	}
 	
-	public static ResponseHandler<Void> voidHandler(){
-		return new ResponseHandler<Void>(){
+	public static ResponseEntityHandler<Void> voidHandler(){
+		return new ResponseEntityHandler<Void>(){
 			@Override
 			public void onResponse(ResponseEntity<Void> response) {
 				//Do nothing
@@ -62,11 +62,11 @@ public class RestClient {
 			this.body = body;
 		}
 		
-		public void onResponse(ResponseHandler<T> handler, Class<T> responseType){
+		public void onResponse(ResponseEntityHandler<T> handler, Class<T> responseType){
 			this.call(this.body, responseType, handler);
 		}
 		
-		public void onResponse(ResponseHandler<Void> handler){
+		public void onResponse(ResponseEntityHandler<Void> handler){
 			this.call(this.body, Void.class, handler);
 		}
 		
@@ -120,7 +120,7 @@ public class RestClient {
 			return parameters;
 		}
 		
-		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
+		public void onResponse(ResponseEntityHandler<T> handler, Class<T> type) {
 			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(this.url());
 			
 			if(this.parameters != null){
@@ -149,7 +149,7 @@ public class RestClient {
 			this.offset = offset;
 		}
 
-		public void onResponse(ResponseHandler<T> handler, Class<T> type) {
+		public void onResponse(ResponseEntityHandler<T> handler, Class<T> type) {
 			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(this.url())
 					.queryParam("_limit", this.limit.get())
 					.queryParam("_offset", this.offset.get());
@@ -169,7 +169,7 @@ public class RestClient {
 	}
 
 	@FunctionalInterface
-	public static interface ResponseHandler<T> {
+	public static interface ResponseEntityHandler<T> {
 		void onResponse(ResponseEntity<T> response);
 	}
 }
