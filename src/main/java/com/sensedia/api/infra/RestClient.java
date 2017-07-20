@@ -42,6 +42,10 @@ public class RestClient {
 		return new PostOperation<>(this.url, this.header, body);
 	}
 	
+	public <T> PostOperation<T> post(){
+		return new PostOperation<>(this.url, this.header, null);
+	}
+	
 	public <T> GetOperation<T> get(Map<String, ?> parameters){
 		return new GetOperation<>(this.url, this.header, parameters);
 	}
@@ -63,10 +67,18 @@ public class RestClient {
 		}
 		
 		public void onResponse(ResponseEntityHandler<T> handler, Class<T> responseType){
+			if(this.body == null){
+				this.call(responseType, handler);
+				return;
+			}
 			this.call(this.body, responseType, handler);
 		}
 		
 		public void onResponse(ResponseEntityHandler<Void> handler){
+			if(this.body == null){
+				this.call(Void.class, handler);
+				return;
+			}
 			this.call(this.body, Void.class, handler);
 		}
 		
@@ -129,7 +141,7 @@ public class RestClient {
 				}
 			}
 			
-			this.call(null, type, handler);
+			this.call(builder.build().encode().toUri(), type, handler);
 		}
 		
 		@Override

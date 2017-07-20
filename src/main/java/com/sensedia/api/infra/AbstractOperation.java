@@ -36,6 +36,18 @@ abstract class AbstractOperation<O extends AbstractOperation<O>> {
 		handler.onResponse(response);
 	}
 	
+	protected <T> void call(Class<T> responseType, ResponseEntityHandler<T> handler){
+		HttpEntity<?> requestEntity = new HttpEntity<>(this.header);
+		ResponseEntity<T> response = this.client.exchange(this.url, this.method(), requestEntity, responseType);
+		handler.onResponse(response);
+	}
+	
+	protected <T> void call(URI uri, Class<T> responseType, ResponseEntityHandler<T> handler){
+		HttpEntity<?> requestEntity = new HttpEntity<>(this.header);
+		ResponseEntity<T> response = this.client.exchange(this.url, this.method(), requestEntity, responseType);
+		handler.onResponse(response);
+	}
+	
 	protected <T> void call(URI uri, Object body, Class<T> responseType, ResponseEntityHandler<T> handler){
 		HttpEntity<?> requestEntity = new HttpEntity<>(body, this.header);
 		ResponseEntity<T> response = this.client.exchange(uri, this.method(), requestEntity, responseType);
